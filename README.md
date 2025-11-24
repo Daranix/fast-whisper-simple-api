@@ -26,11 +26,11 @@ Requires Python 3.13+ and [uv](https://github.com/astral-sh/uv).
 
 2. **Run the API:**
    ```bash
-   fastapi run main:app --host 0.0.0.0 --port 8000
+   python main.py
    ```
-   Or with uvicorn:
+   Or with uvicorn directly for custom settings:
    ```bash
-   uv run uvicorn main:app --host 0.0.0.0 --port 8000
+   uvicorn main:app --host 0.0.0.0 --port 8000 --workers 4
    ```
 
 3. **Access the API:**
@@ -222,10 +222,11 @@ All Dockerfiles use a multistage build pattern:
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `PORT` | `8000` | Server port |
+| `WORKERS` | `4` | Number of worker processes for parallel request handling |
 
 Example:
 ```bash
-docker run -p 9000:9000 -e PORT=9000 ghcr.io/daranix/fast-whisper-simple-api:latest
+docker run -p 9000:9000 -e PORT=9000 -e WORKERS=2 ghcr.io/daranix/fast-whisper-simple-api:latest
 ```
 
 ## File Handling

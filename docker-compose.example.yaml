@@ -1,0 +1,137 @@
+# Docker Compose example for whisper-api
+# Copy this file to docker-compose.yaml and adjust settings as needed
+# Usage: docker-compose up -d
+
+version: '3.8'
+
+services:
+  # ===== CPU-only setup (Debian slim) =====
+  whisper-api-cpu:
+    image: ghcr.io/daranix/fast-whisper-simple-api:latest
+    container_name: whisper-api-cpu
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
+      # Optional: adjust log level
+      # - LOG_LEVEL=info
+    volumes:
+      # Optional: mount a directory for model caching (faster on restart)
+      - whisper-models-cache:/root/.cache/whisper
+      # Optional: mount a directory for uploads/outputs
+      # - ./uploads:/tmp
+    # Resource limits for CPU
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 4G
+        reservations:
+          cpus: '1'
+          memory: 2G
+    restart: unless-stopped
+    # Health check
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/docs"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # ===== GPU setup (NVIDIA CUDA 12.2) =====
+  # To use this: uncomment the section below and remove/comment out whisper-api-cpu
+  # Requires: NVIDIA Container Toolkit installed and docker configured for GPU
+  # Install: https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html
+  #
+  # whisper-api-gpu:
+  #   image: ghcr.io/daranix/fast-whisper-simple-api:gpu
+  #   container_name: whisper-api-gpu
+  #   ports:
+  #     - "8000:8000"
+  #   environment:
+  #     - PORT=8000
+  #     # GPU-specific env vars (optional)
+  #     - CUDA_VISIBLE_DEVICES=0  # Use first GPU, or set to "0,1" for multiple
+  #   volumes:
+  #     - whisper-models-cache:/root/.cache/whisper
+  #   # GPU resource allocation
+  #   deploy:
+  #     resources:
+  #       reservations:
+  #         devices:
+  #           - driver: nvidia
+  #             count: 1  # Number of GPUs to allocate
+  #             capabilities: [gpu]
+  #   restart: unless-stopped
+  #   healthcheck:
+  #     test: ["CMD", "curl", "-f", "http://localhost:8000/docs"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+  #     start_period: 40s
+
+  # ===== Optional: Reverse proxy (nginx) for production =====
+  # Uncomment to add nginx reverse proxy in front of the API
+  #
+  # nginx:
+  #   image: nginx:alpine
+  #   container_name: whisper-nginx
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   volumes:
+  #     - ./nginx.conf:/etc/nginx/nginx.conf:ro
+  #     # - ./certs:/etc/nginx/certs:ro  # For HTTPS
+  #   depends_on:
+  #     - whisper-api-cpu
+  #   restart: unless-stopped
+
+volumes:
+  # Named volume for model cache (persists between container restarts)
+  whisper-models-cache:
+    driver: local
+
+# ===== Usage Examples =====
+#
+# 1. Start CPU service:
+#    docker-compose up -d
+#
+# 2. Check logs:
+#    docker-compose logs -f whisper-api-cpu
+#
+# 3. Stop service:
+#    docker-compose down
+#
+# 4. Remove volumes (clears cache):
+#    docker-compose down -v
+#
+# 5. Scale service (requires load balancer):
+#    docker-compose up -d --scale whisper-api-cpu=3
+#
+# 6. View running services:
+#    docker-compose ps
+#
+# 7. Execute command in container:
+#    docker-compose exec whisper-api-cpu curl http://localhost:8000/docs
+
+# ===== Performance Tuning =====
+#
+# CPU Performance:
+#   - Increase memory limits: memory: 8G (for large models)
+#   - Increase CPU limit: cpus: '4' (more cores = faster processing)
+#   - Use SSD for /tmp if available (faster I/O for audio extraction)
+#
+# GPU Performance:
+#   - Allocate full GPU with count: all (if you have single GPU)
+#   - Pin GPU device: CUDA_VISIBLE_DEVICES=0 (default: use first GPU)
+#   - Increase memory: memory: 6G (for large models on GPU)
+
+# ===== Model Caching =====
+#
+# The whisper-models-cache volume persists model downloads.
+# First run downloads the model (~140MB for 'base' model).
+# Subsequent runs reuse the cached model (much faster).
+#
+# To warm up the cache with a model on startup:
+# - Add to the service an init container or use a startup script
+# - Example: download base model before accepting requests

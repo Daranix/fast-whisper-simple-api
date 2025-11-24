@@ -46,6 +46,7 @@ ENV PATH="/app/.venv/bin:$PATH"
 USER nonroot
 WORKDIR /app
 
-# Default: run the FastAPI app via fastapi CLI
+ENV PORT=8000
+# Default: run the FastAPI app via python main.py
 EXPOSE 8000
-CMD ["fastapi", "run", "--host", "0.0.0.0", "main:app"]
+CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT} --workers 4"]

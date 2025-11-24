@@ -40,4 +40,4 @@ EXPOSE 8000
 USER 1000
 WORKDIR /app
 
-CMD ["fastapi", "run", "--host", "0.0.0.0", "main:app"]
+CMD ["python", "main.py"]
