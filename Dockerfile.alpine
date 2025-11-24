@@ -1,0 +1,49 @@
+## Builder: use uv Alpine base to provision a managed Python and install dependencies
+## Note: Alpine (musl) may not have wheels for all dependencies (e.g., torch).
+## Use this image only if dependencies are Alpine-compatible.
+FROM ghcr.io/astral-sh/uv:alpine AS builder
+ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
+ENV UV_PYTHON_INSTALL_DIR=/python
+ENV UV_PYTHON_PREFERENCE=only-managed
+
+# Install a managed Python version for the builder
+RUN uv python install 3.13
+
+WORKDIR /app
+
+# Use build cache mounts for dependency caching
+RUN --mount=type=cache,target=/root/.cache/uv \
+    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    uv sync --no-install-project --no-dev || true
+
+COPY . /app
+
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --no-dev
+
+## Final image: Alpine runtime
+FROM alpine:latest
+
+# Install runtime system deps (ffmpeg, libsndfile for audio processing)
+# Note: Alpine musl may not have all packages; if build fails, ensure these
+# are available in Alpine's repository.
+RUN apk add --no-cache \
+    ffmpeg \
+    libsndfile \
+    ca-certificates
+
+# Copy the Python installation from the builder
+COPY --from=builder /python /python
+
+# Copy the application from the builder
+COPY --from=builder /app /app
+
+# Place Python on PATH
+ENV PATH="/python/bin:/app/.venv/bin:$PATH"
+
+WORKDIR /app
+
+EXPOSE 8000
+
+# Run the FastAPI app via fastapi CLI
+CMD ["fastapi", "run", "--host", "0.0.0.0", "main:app"]
