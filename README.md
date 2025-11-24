@@ -39,7 +39,7 @@ Requires Python 3.13+ and [uv](https://github.com/astral-sh/uv).
 
 ### Docker
 
-Three image variants are available at `ghcr.io/daranix/fast-whisper-simple-api`:
+Two image variants are available at `ghcr.io/daranix/fast-whisper-simple-api`:
 
 #### Slim (CPU - Debian bookworm)
 ```bash
@@ -49,14 +49,6 @@ docker run -p 8000:8000 \
   ghcr.io/daranix/fast-whisper-simple-api:latest
 ```
 
-#### Alpine (CPU - lightweight)
-```bash
-docker pull ghcr.io/daranix/fast-whisper-simple-api:alpine
-
-docker run -p 8000:8000 \
-  ghcr.io/daranix/fast-whisper-simple-api:alpine
-```
-
 #### GPU (NVIDIA CUDA 12.2)
 ```bash
 docker pull ghcr.io/daranix/fast-whisper-simple-api:gpu
@@ -64,6 +56,8 @@ docker pull ghcr.io/daranix/fast-whisper-simple-api:gpu
 docker run --gpus all -p 8000:8000 \
   ghcr.io/daranix/fast-whisper-simple-api:gpu
 ```
+
+**Note:** Alpine is not supported. The project dependencies (`faster-whisper`, `torch`, `onnxruntime`) do not provide pre-built wheels for musl/Alpine. The slim Debian image is already lightweight (~200MB) and is the recommended CPU variant.
 
 ## API Usage
 
@@ -165,9 +159,6 @@ console.log(result);
 # Slim (CPU) - Debian based
 docker build -t whisper-api:latest .
 
-# Alpine - lightweight
-docker build -f Dockerfile.alpine -t whisper-api:alpine .
-
 # GPU - NVIDIA CUDA
 docker build -f Dockerfile.nvidia -t whisper-api:gpu .
 ```
@@ -180,7 +171,6 @@ docker buildx create --use
 
 # Build and load
 docker buildx build -t whisper-api:latest --load .
-docker buildx build -f Dockerfile.alpine -t whisper-api:alpine --load .
 docker buildx build -f Dockerfile.nvidia -t whisper-api:gpu --load .
 ```
 
@@ -350,8 +340,9 @@ Images are built and pushed to `ghcr.io/daranix/fast-whisper-simple-api` on rele
 
 - Create a GitHub release tag (e.g., `v1.0.0`)
 - GitHub Actions automatically:
-  - Builds all three image variants
-  - Tags with `:latest`, `:slim`, `:alpine`, `:gpu`
+  - Builds two image variants (slim CPU and GPU)
+  - Tags with `:latest`, `:slim` (CPU)
+  - Tags with `:gpu`
   - Also tags with version (e.g., `:slim-v1.0.0`, `:gpu-v1.0.0`)
   - Pushes to GitHub Container Registry
 

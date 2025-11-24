@@ -20,9 +20,6 @@ jobs:
           - dockerfile: Dockerfile
             tag_suffix: latest
             tag_variant: slim
-          - dockerfile: Dockerfile.alpine
-            tag_suffix: alpine
-            tag_variant: alpine
           - dockerfile: Dockerfile.nvidia
             tag_suffix: gpu
             tag_variant: gpu
